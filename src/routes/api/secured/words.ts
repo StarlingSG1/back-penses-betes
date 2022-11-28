@@ -39,11 +39,11 @@ api.post("/", async ({ body }, res) => {
           name: "asc",
         },
       });
-      
+
       return res.status(200).json({ data: words });
     }
 
-    
+
 
   } catch (error) {
     console.log(error);
@@ -61,11 +61,11 @@ api.post("/create", async ({ body }, res) => {
       },
     });
 
-    
+
     if (user) {
-      
-      if(!word){
-  
+
+      if (!word) {
+
         const allWords = await prisma.word.findMany({
           where: {
             userId: user.id,
@@ -77,11 +77,11 @@ api.post("/create", async ({ body }, res) => {
             name: "asc",
           },
         });
-  
-        return res.status(200).json({error: true, message: "Le mot est requis", data: allWords});
+
+        return res.status(200).json({ error: true, message: "Le mot est requis", data: allWords });
       }
 
-     
+
       const newWord = await prisma.word.create({
         data: {
           name: capitalizeFirstLetter(word),
@@ -105,11 +105,134 @@ api.post("/create", async ({ body }, res) => {
         },
       });
 
-      return res.status(200).json({error: false,data : allWords, message: "Le mot a bien été ajouté"});
+      return res.status(200).json({ error: false, data: allWords, message: "Le mot a bien été ajouté" });
     }
   } catch (error) {
     console.log(error);
-  } 
+  }
+});
+
+api.post("/delete", async ({ body }, res) => {
+  try {
+    const { token, id } = body;
+    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (user) {
+      const word = await prisma.word.findUnique({
+        where: {
+          id: id,
+        },
+      });
+
+      if (word) {
+        const deletedWord = await prisma.word.delete({
+          where: {
+            id: id,
+          },
+        });
+
+        const allWords = await prisma.word.findMany({
+          where: {
+            userId: user.id,
+          },
+          include: {
+            language: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+
+        return res.status(200).json({ error: false, data: allWords, message: "Le mot a bien été supprimé" });
+      } else {
+        const allWords = await prisma.word.findMany({
+          where: {
+            userId: user.id,
+          },
+          include: {
+            language: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+        return res.status(200).json({ error: true, data: allWords, message: "Le mot n'existe pas" });
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+api.post("/update", async ({ body }, res) => {
+  try {
+    const { token, id, word, language, definition, traduction } = body;
+    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (user) {
+      const wordToUpdate = await prisma.word.findUnique({
+        where: {
+          id: id,
+        },
+      });
+
+      if (wordToUpdate) {
+        const updatedWord = await prisma.word.update({
+          where: {
+            id: id,
+          },
+          data: {
+            name: capitalizeFirstLetter(word),
+            languageId: language,
+            traduction: capitalizeFirstLetter(traduction),
+            definition: definition,
+          },
+        });
+
+        const allWords = await prisma.word.findMany({
+          where: {
+            userId: user.id,
+          },
+          include: {
+            language: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+
+        return res.status(200).json({ error: false, data: allWords, message: "Le mot a bien été modifié" });
+      } else {
+        const allWords = await prisma.word.findMany({
+          where: {
+            userId: user.id,
+          },
+          include: {
+            language: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+
+        return res.status(200).json({ error: true, data: allWords, message: "Le mot n'existe pas" });
+      }
+    }else{
+      return res.status(200).json({ error: true, message: "Vous n'êtes pas connecté" });
+    }
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 export default api;
