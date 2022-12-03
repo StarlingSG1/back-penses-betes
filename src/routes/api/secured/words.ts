@@ -171,7 +171,7 @@ api.post("/delete", async ({ body }, res) => {
 
 api.post("/update", async ({ body }, res) => {
   try {
-    const { token, id, word, language, definition, traduction } = body;
+    const { token, id, name, languageId, definition, traduction } = body;
     const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
     const user = await prisma.user.findUnique({
       where: {
@@ -192,8 +192,8 @@ api.post("/update", async ({ body }, res) => {
             id: id,
           },
           data: {
-            name: capitalizeFirstLetter(word),
-            languageId: language,
+            name: capitalizeFirstLetter(name),
+            languageId: languageId,
             traduction: capitalizeFirstLetter(traduction),
             definition: definition,
           },
