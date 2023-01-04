@@ -17,17 +17,16 @@ function capitalizeFirstLetter(str) {
   return capitalized;
 }
 
-api.post("/", async ({ body }, res) => {
+api.get("/", async (req, res) => {
   try {
-    const { token } = body;
-    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await prisma.user.findUnique({
+    const user = req.user;
+    const theUser = await prisma.user.findUnique({
       where: {
-        email: email,
+        email: user.email,
       },
     });
 
-    if (user) {
+    if (theUser) {
       const words = await prisma.word.findMany({
         where: {
           userId: user.id,
@@ -42,30 +41,18 @@ api.post("/", async ({ body }, res) => {
 
       return res.status(200).json({ data: words });
     }
-
-
-
   } catch (error) {
     console.log(error);
   }
 });
 
 
-api.post("/create", async ({ body }, res) => {
+api.post("/create", async (req, res) => {
   try {
-    const { token, word, language, definition, traduction } = body;
-    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
-
-
+    const { name, languageId, definition, traduction } = req.body;
+    const user = req.user;
     if (user) {
-
-      if (!word) {
-
+      if (!name) {
         const allWords = await prisma.word.findMany({
           where: {
             userId: user.id,
@@ -84,8 +71,8 @@ api.post("/create", async ({ body }, res) => {
 
       const newWord = await prisma.word.create({
         data: {
-          name: capitalizeFirstLetter(word),
-          languageId: language,
+          name: capitalizeFirstLetter(name),
+          languageId: languageId,
           traduction: capitalizeFirstLetter(traduction),
           definition: definition,
           userId: user.id,
@@ -112,17 +99,17 @@ api.post("/create", async ({ body }, res) => {
   }
 });
 
-api.post("/delete", async ({ body }, res) => {
+api.post("/delete", async (req, res) => {
   try {
-    const { token, id } = body;
-    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await prisma.user.findUnique({
+    const { id } = req.body;
+    const user = req.user
+    const newUser = await prisma.user.findUnique({
       where: {
-        email: email,
+        email: user.email,
       },
     });
 
-    if (user) {
+    if (newUser) {
       const word = await prisma.word.findUnique({
         where: {
           id: id,
@@ -169,17 +156,17 @@ api.post("/delete", async ({ body }, res) => {
   }
 });
 
-api.post("/update", async ({ body }, res) => {
+api.post("/update", async (req, res) => {
   try {
-    const { token, id, name, languageId, definition, traduction } = body;
-    const { email } = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await prisma.user.findUnique({
+    const { id, name, languageId, definition, traduction } = req.body;
+    const user = req.user;
+    const newUser = await prisma.user.findUnique({
       where: {
-        email: email,
+        email: user.email,
       },
     });
 
-    if (user) {
+    if (newUser) {
       const wordToUpdate = await prisma.word.findUnique({
         where: {
           id: id,
@@ -213,19 +200,8 @@ api.post("/update", async ({ body }, res) => {
 
         return res.status(200).json({ error: false, data: allWords, message: "Le mot a bien été modifié" });
       } else {
-        const allWords = await prisma.word.findMany({
-          where: {
-            userId: user.id,
-          },
-          include: {
-            language: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
 
-        return res.status(200).json({ error: true, data: allWords, message: "Le mot n'existe pas" });
+        return res.status(200).json({ error: true, message: "Le mot n'existe pas" });
       }
     }else{
       return res.status(200).json({ error: true, message: "Vous n'êtes pas connecté" });
