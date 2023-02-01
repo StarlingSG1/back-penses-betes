@@ -78,7 +78,7 @@ api.post("/login", async (req, res) => {
     // const VERIFY_URL = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.SECRET_KEY}&response=${req.body['recaptcha']}`;
     // const tokenValue = fetch(VERIFY_URL, { method: 'POST' })
     // Get user input
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
     
     // Validate user input
     if (!(email && password)) {
@@ -96,10 +96,17 @@ api.post("/login", async (req, res) => {
     }
     
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Create token
-      const token = jwt.sign({ id: user.id, email }, process.env.TOKEN_SECRET, {
-        expiresIn: "2h",
-      });
+      
+      let token = "";
+      if(remember){
+         token = jwt.sign({ id: user.id, email }, process.env.TOKEN_SECRET, {
+          expiresIn: "7d",
+        });
+      } else{
+         token = jwt.sign({ id: user.id, email }, process.env.TOKEN_SECRET, {
+          expiresIn: "2h",
+        });
+      }
       
       // save user token
       user.token = token;
